@@ -52,10 +52,10 @@ app.post('/api/shorturl', async (req, res) => {
 
   const url = req.body.url; 
 
-  try {
-    
-    const data = await ShortUrl.findOne({ url });
+  ShortUrl.findOne({ url }, async (err,data) => {
+    if(err) return res.status(500).json({ message: "Something unexpected happened"});
     if(!data){
+          
       let shortUrlCount = 0;
           
           try {
@@ -73,28 +73,26 @@ app.post('/api/shorturl', async (req, res) => {
 
           const shortUrl = new ShortUrl(data)
 
-           await shortUrl.save(data);
-           return res.status(200).json({url: data.url, shortId: data.prefix});
-
+          shortUrl.save(data, (err, data) => {
+            if(err){
+              return res.status(500).json({ message: "Something unexpected happened"})
+            }else {
+              return res.status(200).json({ url: data.url, shortId: data.prefix })
+            }
+          })
     } else {
       return res.status(200).json({url: data.url, shortId: data.prefix});
     }
-
-  } catch(err){
-    return res.status(500).json({ message: "Something unexpected happened"});
-  }
-
+  })
 })
 
 app.get("/api/shortUrl/:shortId", async (req, res) => {
   const shortId = req.params.shortId; 
 
-  try {
-    const data = await ShortUrl.findOne({ prefix: shortId });
+  ShortUrl.findOne({ prefix: shortId }, (err, data) => {
+    if(err) return res.json(500).status({ message: "Something unexpected happened" })
     res.redirect(data.url);
-  } catch(err){
-     return res.json(500).status({ message: "Something unexpected happened" })
-  }
+  })
 
 })
 

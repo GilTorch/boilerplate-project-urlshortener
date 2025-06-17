@@ -15,6 +15,8 @@ app.use(bodyParser.json())
 
 app.use(cors());
 
+console.log(`${process.cwd()}`)
+
 app.use('/public', express.static(`${process.cwd()}/public`));
 
 app.get('/', function(req, res) {
@@ -51,11 +53,23 @@ const ShortUrl = connection.model("ShortUrl", shortUrlSchema);
 app.post('/api/shorturl', async (req, res) => {
 
   const url = req.body.url; 
+  
+  console.log("url", url);
+  
+const regex = /^(https?:\/\/)?([\w\-]+\.)+[a-z]{2,}([\/\w\-._~:?#[\]@!$&'()*+,;=]*)?$/i;
+  
+  if(!regex.test(url)){
+    return res.json({error: 'invalid url'})
+  }
 
-  ShortUrl.findOne({ url }, async (err,data) => {
-    if(err) return res.status(500).json({ message: "Something unexpected happened"});
+  
+  
+  
+
+  try {
+    
+    const data = await ShortUrl.findOne({ url });
     if(!data){
-          
       let shortUrlCount = 0;
           
           try {
@@ -73,26 +87,28 @@ app.post('/api/shorturl', async (req, res) => {
 
           const shortUrl = new ShortUrl(data)
 
-          shortUrl.save(data, (err, data) => {
-            if(err){
-              return res.status(500).json({ message: "Something unexpected happened"})
-            }else {
-              return res.status(200).json({ url: data.url, shortId: data.prefix })
-            }
-          })
+           await shortUrl.save(data);
+           return res.status(200).json({original_url: data.url, short_url: data.prefix});
+
     } else {
-      return res.status(200).json({url: data.url, shortId: data.prefix});
+      return res.status(200).json({original_url: data.url, short_url: data.prefix});
     }
-  })
+
+  } catch(err){
+    return res.status(500).json({ message: "Something unexpected happened"});
+  }
+
 })
 
-app.get("/api/shortUrl/:shortId", async (req, res) => {
+app.get("/api/shorturl/:shortId", async (req, res) => {
   const shortId = req.params.shortId; 
 
-  ShortUrl.findOne({ prefix: shortId }, (err, data) => {
-    if(err) return res.json(500).status({ message: "Something unexpected happened" })
+  try {
+    const data = await ShortUrl.findOne({ prefix: shortId });
     res.redirect(data.url);
-  })
+  } catch(err){
+     return res.json(500).status({ message: "Something unexpected happened" })
+  }
 
 })
 
